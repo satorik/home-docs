@@ -14,10 +14,10 @@ const documentTypeSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User"
   },
-  documents: [{
-    type: Schema.Types.ObjectId,
-    ref: 'Document'
-  }],
+  // documents: [{
+  //   type: Schema.Types.ObjectId,
+  //   ref: 'Document'
+  // }],
 }, {timestamps: true});
 
 export default mongoose.model("DocumentType", documentTypeSchema)

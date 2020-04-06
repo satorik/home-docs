@@ -15,12 +15,12 @@ const documentOriginSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: 'Storage'
   }],
-  documents: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: 'Document'
-    }
-  ]
+  // documents: [
+  //   {
+  //     type: Schema.Types.ObjectId,
+  //     ref: 'Document'
+  //   }
+  // ]
 }, {timestamps: true});
 
 export default mongoose.model("DocumentOrigin", documentOriginSchema)

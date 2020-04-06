@@ -3,7 +3,6 @@ import { DocumentOrigin, Document, DocumentType, User, Storage } from '../models
 
 const documentResolvers = {
   createDocument: async({inputData}, req) => {
-    console.log(inputData)
     try {
       let documentType = await DocumentType.findOne({title: inputData.documentType})
       if (!documentType) {
@@ -22,39 +21,58 @@ const documentResolvers = {
         documentType: documentType
       }).save()
 
-      documentType.documents.push(newDocument)
-      await documentType.save()
-
       const {storages} = inputData
-      for (let origin in storages) {
-        console.log(origin)
-        console.log(storages[origin])
-        let docOrigin = await DocumentOrigin.findById(origin)
-        let place = await Storage.findOne({place: storages[origin], documentOrigin: docOrigin})
+      const returnedStorages = []
+
+      for (let origin of storages) {
+
+        const docOrigin = await DocumentOrigin.findById(origin._id)
+        let place = await Storage.findOne({place: origin.value, documentOrigin: docOrigin})
         if (!place) {
           place = await new Storage({
-            place: storages[origin], 
+            place: origin.value, 
             documentOrigin: docOrigin
             }).save()
+
+          docOrigin.storages.push(place)
+          await docOrigin.save()
         }
+
+        returnedStorages.push({
+          place: origin.value, 
+          originId: origin._id
+        })
+
         place.documents.push(newDocument)
         await place.save()
-        
         newDocument.storages.push(place)
         await newDocument.save()
-        
-        docOrigin.storages.push(place)
-        docOrigin.documents.push(newDocument)
-        await docOrigin.save()
       }
 
-      return newDocument
+      return {
+        _id: newDocument._id,
+        title: newDocument.title,
+        owner:  owner.username,
+        comment: newDocument.comment,
+        documentType: documentType.title,
+        storages: returnedStorages
+      }
 
     } catch (err) {
-      throw err;
+      console.log('outside', err)
     }
   },
- createDocumentOrigin: async ({inputData}, req) => {
+  updateDocument: async({_id, inputData}, req) => {
+
+  },
+  deleteDocument: async({_id}, req) => {
+    console.log(_id)
+    await Storage.updateMany( { }, {$pull: {documents: _id}}, { multi: true })
+    await Document.deleteOne({_id})
+    
+    return _id
+  },
+  createDocumentOrigin: async ({inputData}, req) => {
      const newOrigin = await new DocumentOrigin({
        type:inputData.type,
        title: inputData.title
@@ -62,8 +80,29 @@ const documentResolvers = {
 
      return newOrigin
   },
-  getDocumentOrigins: (args, req) => {
-    return DocumentOrigin.find()
+  getDocumentOrigins: async(args, req) => {
+    const docOrigins = await DocumentOrigin.find().populate('storages') 
+
+    return docOrigins.map(origin => {
+      return {
+        _id: origin._id,
+        type: origin.type,
+        title: origin.title,
+        storages: origin.storages.map(storage => {
+          return {
+            _id: storage._id,
+            place: storage.place
+          }
+        })
+      }
+    })
+
+  },
+  getOwners: (args, req) => {
+    return User.find()
+  },
+  getDocumentTypes: (args, req) => {
+    return DocumentType.find()
   },
   getDocuments: async (args, req) => {
     const docs =  await Document.find()
